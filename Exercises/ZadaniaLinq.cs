@@ -428,17 +428,14 @@ public sealed class ZadaniaLinq
         .SelectMany(
             x => x.Przedmioty.DefaultIfEmpty(),
             (x, przedmiot) => new { x.Prowadzacy, Przedmiot = przedmiot })
-        .GroupJoin(
+        .Join(
             DaneUczelni.Zapisy,
             x => x.Przedmiot?.Id,
             z => z.PrzedmiotId,
-            (x, zapisy) => new { x.Prowadzacy, Zapisy = zapisy })
-        .SelectMany(
-            x => x.Zapisy.Where(z => z.OcenaKoncowa != null),
-            (x, zapis) => new { x.Prowadzacy, Ocena = zapis.OcenaKoncowa!.Value })
-        .GroupBy(
-            x => $"{x.Prowadzacy.Imie} {x.Prowadzacy.Nazwisko}")
-        .Select(g => $"{g.Key} {g.Average(x => x.Ocena)}");
+            (x, z) => new { x.Prowadzacy, z.OcenaKoncowa })
+        .Where(x => x.OcenaKoncowa != null)
+        .GroupBy(x => $"{x.Prowadzacy.Imie} {x.Prowadzacy.Nazwisko}")
+        .Select(g => $"{g.Key} {g.Average(x => x.OcenaKoncowa!.Value):0.00}");
 
     return averageScores;
 }
