@@ -417,26 +417,27 @@ public sealed class ZadaniaLinq
     /// </summary>
     public IEnumerable<string> Wyzwanie03_ProwadzacyISredniaOcenNaIchPrzedmiotach()
     {
+        var gradesByLecturer = DaneUczelni.Przedmioty
+            .Join(
+                DaneUczelni.Zapisy,
+                p => p.Id,
+                z => z.PrzedmiotId,
+                (p, z) => new { p.ProwadzacyId, z.OcenaKoncowa })
+            .Where(x => x.OcenaKoncowa != null)
+            .Select(x => new { x.ProwadzacyId, Ocena = x.OcenaKoncowa!.Value });
+
         var averageScores = DaneUczelni.Prowadzacy
             .GroupJoin(
-            DaneUczelni.Przedmioty,
-            pr => pr.Id,
-            p => p.ProwadzacyId,
-            (pr, przedmioty) => new { Prowadzacy = pr, Przedmioty = przedmioty })
-        .SelectMany(
-            x => x.Przedmioty.DefaultIfEmpty(),
-            (x, przedmiot) => new { x.Prowadzacy, Przedmiot = przedmiot })
-        .Join(
-            DaneUczelni.Zapisy,
-            x => x.Przedmiot?.Id,
-            z => z.PrzedmiotId,
-            (x, z) => new { x.Prowadzacy, z.OcenaKoncowa })
-        .Where(x => x.OcenaKoncowa != null)
-        .GroupBy(x => $"{x.Prowadzacy.Imie} {x.Prowadzacy.Nazwisko}")
-        .Select(g => $"{g.Key} {g.Average(x => x.OcenaKoncowa!.Value):0.00}");
+                gradesByLecturer,
+                pr => pr.Id,
+                g => g.ProwadzacyId,
+                (pr, ocenyProwadzacego) => new { Prowadzacy = pr, Oceny = ocenyProwadzacego })
+            .Select(x => x.Oceny.Any()
+                ? $"{x.Prowadzacy.Imie} {x.Prowadzacy.Nazwisko} {x.Oceny.Average(o => o.Ocena)}"
+                : $"{x.Prowadzacy.Imie} {x.Prowadzacy.Nazwisko} brak ocen");
 
-    return averageScores;
-}
+        return averageScores;
+    }
 
     /// <summary>
     /// Wyzwanie:
